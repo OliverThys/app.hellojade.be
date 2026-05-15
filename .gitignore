@@ -1,0 +1,6 @@
+.env
+temp/
+reports/
+*.sql
+*.zip
+*.tar.gz
