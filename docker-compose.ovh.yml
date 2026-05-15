@@ -92,9 +92,10 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    command: start-dev --import-realm
+    command: start-dev
     volumes:
       - /root/hellojade/keycloak/epicura-realm.json:/opt/keycloak/data/import/epicura-realm.json:ro
+      - /root/hellojade/keycloak/themes/hellojadedemo:/opt/keycloak/themes/hellojadedemo:ro
     depends_on:
       keycloak-db:
         condition: service_healthy
@@ -217,7 +218,7 @@ services:
     restart: unless-stopped
     command: celery -A app.tasks.celery_app beat --loglevel=info
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "cat /proc/*/cmdline 2>/dev/null | tr '\\0' ' ' | grep -q 'celery.*beat'"]
       interval: 60s
       timeout: 10s
       retries: 3

@@ -1,5 +1,5 @@
 """
-Questionnaire médical post-hospitalisation HelloJADE — Epicura.
+Questionnaire médical post-hospitalisation HelloJADE — Maolys.
 
 Modèle par défaut et repli si la base ne contient pas de questions actives.
 Les appels en production chargent de préférence le questionnaire depuis la DB
@@ -12,8 +12,8 @@ RECORD_DURATION_SHORT = 10
 RECORD_DURATION_LONG = 20
 
 WELCOME_MESSAGE = (
-    "Bonjour, je suis Jade, l'assistant vocal du Centre Hospitalier EpiCURA. "
-    "Je vous appelle dans le cadre du suivi de votre récente hospitalisation."
+    "Bonjour, je suis Jade, l'assistante vocale HelloJADE. "
+    "Je vous appelle dans le cadre d'une démonstration de suivi post-hospitalisation."
 )
 
 # ── Phase destinataire ────────────────────────────────────────────────────────
@@ -51,15 +51,15 @@ CONSENT_QUESTION_PROCHE = (
 
 CONSENT_REFUSED_MESSAGE = (
     "Je comprends tout à fait. "
-    "N'hésitez pas à contacter l'hôpital si vous avez le moindre doute. Au revoir."
+    "N'hésitez pas à nous recontacter si vous avez le moindre doute. Au revoir."
 )
 
 # ── Clôture — variantes aidant proche ────────────────────────────────────────
 
 CLOSING_MESSAGE_NORMAL_PROCHE = (
-    "Je vous remercie pour vos réponses — elles ont bien été transmises à l'équipe soignante. "
+    "Je vous remercie pour vos réponses — elles ont bien été enregistrées dans le système. "
     "Si le patient ressent un symptôme nouveau ou inquiétant dans les prochains jours, "
-    "n'hésitez pas à contacter l'hôpital directement. "
+    "n'hésitez pas à consulter un professionnel de santé. "
     "Prenez soin de lui, et au revoir."
 )
 
@@ -255,9 +255,9 @@ QUESTIONNAIRE: List[Dict[str, Any]] = [
 ]
 
 CLOSING_MESSAGE_NORMAL = (
-    "Je vous remercie pour vos réponses — elles ont bien été transmises à votre équipe soignante. "
+    "Je vous remercie pour vos réponses — elles ont bien été enregistrées dans le système. "
     "Si vous ressentez un symptôme nouveau ou inquiétant dans les prochains jours, "
-    "n'hésitez pas à contacter l'hôpital directement. "
+    "n'hésitez pas à consulter un professionnel de santé. "
     "Prenez soin de vous, et bon rétablissement. Au revoir."
 )
 
