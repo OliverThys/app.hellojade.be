@@ -1,0 +1,123 @@
+[
+  {
+    "canonical": "Arcoxia",
+    "dci": "Étoricoxib",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "ar-kok-si-a",
+    "phrase_list_entries": ["Arcoxia", "arcoxia", "Étoricoxib", "etoricoxib"],
+    "variants": [
+      "arcoxia", "arkoksia", "ar coxia", "arcoxsia",
+      "arcoxi", "arcoksia", "étoricoxib", "etoricoxib", "étoricoxib"
+    ]
+  },
+  {
+    "canonical": "Diclofénac",
+    "dci": "Diclofénac",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "di-klo-fé-nak",
+    "phrase_list_entries": ["Diclofénac", "diclofenac", "diclofénac"],
+    "variants": [
+      "diclofénac", "diclofenac", "diclofénak", "di clofénac",
+      "diclo fénac", "diclofénnac", "diclofenaque"
+    ]
+  },
+  {
+    "canonical": "Gambaran",
+    "dci": "Diclofénac",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "gam-ba-ran",
+    "phrase_list_entries": ["Gambaran", "gambaran"],
+    "variants": [
+      "gambaran", "gambaran", "gam baran", "gammbaran",
+      "gambaran", "gambaranne"
+    ]
+  },
+  {
+    "canonical": "Ibuprofène",
+    "dci": "Ibuprofène",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "i-bu-pro-fen",
+    "phrase_list_entries": ["Ibuprofène", "ibuprofene", "ibuprofen", "ibuprofène"],
+    "variants": [
+      "ibuprofène", "ibuprofene", "ibuprofen", "ibu profène",
+      "ibuprofene", "ibbuprofen", "ibuprofènne", "ibuproféne"
+    ]
+  },
+  {
+    "canonical": "Ketesse",
+    "dci": "Dexkétoprofène",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "ké-tès",
+    "phrase_list_entries": ["Ketesse", "ketesse", "Dexkétoprofène"],
+    "variants": [
+      "ketesse", "kétesse", "ké tesse", "kétess",
+      "kétèse", "ketess", "dexkétoprofène", "dexketoprofene"
+    ]
+  },
+  {
+    "canonical": "Naprosyne",
+    "dci": "Naproxène",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "na-pro-zine",
+    "phrase_list_entries": ["Naprosyne", "naprosyne", "Naproxène", "naproxene"],
+    "variants": [
+      "naprosyne", "naprozine", "napro zine", "naprosyn",
+      "naprozyne", "naproxène", "naproxene", "naprox-ène"
+    ]
+  },
+  {
+    "canonical": "Naproxène",
+    "dci": "Naproxène",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "na-prox-ène",
+    "phrase_list_entries": ["Naproxène", "naproxene", "naproxène"],
+    "variants": [
+      "naproxène", "naproxene", "naprox ène", "naproxénne",
+      "naproks-ène", "naproksène"
+    ]
+  },
+  {
+    "canonical": "Nurofen",
+    "dci": "Ibuprofène",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "nu-ro-fen",
+    "phrase_list_entries": ["Nurofen", "nurofen"],
+    "variants": [
+      "nurofen", "nurofène", "nu rofen", "nurofenn",
+      "nuro-fen", "nuroféne", "nuroffen"
+    ]
+  },
+  {
+    "canonical": "Piroxicam",
+    "dci": "Piroxicam",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "pi-ro-xi-cam",
+    "phrase_list_entries": ["Piroxicam", "piroxicam"],
+    "variants": [
+      "piroxicam", "piroksiccam", "piro xicam", "piroxicame",
+      "piroxikam", "pi-roxicam"
+    ]
+  },
+  {
+    "canonical": "Taradyl",
+    "dci": "Kétorolac",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "ta-ra-dil",
+    "phrase_list_entries": ["Taradyl", "taradyl", "Kétorolac", "ketorolac"],
+    "variants": [
+      "taradyl", "taradil", "tara dil", "taradyle",
+      "tarradil", "kétorolac", "ketorolac", "kétorolaque"
+    ]
+  },
+  {
+    "canonical": "Voltaren",
+    "dci": "Diclofénac",
+    "category": "anti-inflammatoire",
+    "phonetic_syllables": "vol-ta-rèn",
+    "phrase_list_entries": ["Voltaren", "voltaren"],
+    "variants": [
+      "voltaren", "voltarène", "vol taren", "voltarene",
+      "voltarrène", "voltarren", "volltaren", "voltarenne"
+    ]
+  }
+]

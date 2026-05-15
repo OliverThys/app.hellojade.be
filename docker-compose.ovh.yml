@@ -1,0 +1,262 @@
+# ============================================================
+# HelloJADE Epicura - OVH VPS (Stack consolidee)
+# ============================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hellojadeapp-postgres
+    environment:
+      POSTGRES_DB: hellojadeapp
+      POSTGRES_USER: hellojadeapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /root/hellojade/backups:/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hellojadeapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hellojadeapp-app
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c maintenance_work_mem=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=64MB
+      -c work_mem=10MB
+      -c listen_addresses='*'
+
+  redis:
+    image: redis:7-alpine
+    container_name: hellojadeapp-redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --bind 0.0.0.0
+      --protected-mode yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - hellojadeapp-app
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: hellojadeapp-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hellojadeapp-app
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: hellojadeapp-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: app.hellojadeapp.be
+      KC_HOSTNAME_PORT: "443"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_PROXY_HEADERS: xforwarded
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    command: start-dev --import-realm
+    volumes:
+      - /root/hellojade/keycloak/epicura-realm.json:/opt/keycloak/data/import/epicura-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hellojadeapp-app
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 2>/dev/null && echo ok || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  backend:
+    image: hellojadeapp-backend:latest
+    container_name: hellojadeapp-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hellojadeapp:${POSTGRES_PASSWORD}@postgres:5432/hellojadeapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      APP_ENV: production
+      APP_DEBUG: "false"
+      FRONTEND_URL: https://app.hellojadeapp.be
+      RATE_LIMIT_ENABLED: "true"
+      CORS_ORIGINS: '["https://app.hellojadeapp.be"]'
+      ASTERISK_ARI_URL: http://host.docker.internal:8088
+      ASTERISK_ARI_USER: ${ASTERISK_ARI_USER}
+      ASTERISK_ARI_PASSWORD: ${ASTERISK_ARI_PASSWORD}
+      ASTERISK_ARI_APP: ${ASTERISK_ARI_APP}
+      ASTERISK_CALLER_NUMBER: ${ASTERISK_CALLER_NUMBER}
+      ASTERISK_TRUNK: ${ASTERISK_TRUNK}
+      TRANSFER_NUMBER: ${TRANSFER_NUMBER}
+      TRANSFER_MODE: ${TRANSFER_MODE}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION}
+      AZURE_TTS_VOICE: ${AZURE_TTS_VOICE}
+      AZURE_STT_LANGUAGE: ${AZURE_STT_LANGUAGE}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      MISTRAL_MODEL: ${MISTRAL_MODEL}
+      SAML2_ENABLED: "true"
+      SAML2_IDP_ENTITY_ID: https://app.hellojadeapp.be/auth/realms/demo
+      SAML2_IDP_SSO_URL: https://app.hellojadeapp.be/auth/realms/demo/protocol/saml
+      SAML2_IDP_SLO_URL: https://app.hellojadeapp.be/auth/realms/demo/protocol/saml
+      SAML2_SP_ENTITY_ID: hellojadeapp
+      SAML2_SP_ASSERTION_CONSUMER_SERVICE_URL: https://app.hellojadeapp.be/api/v1/auth/saml/acs
+      SAML2_IDP_X509_CERT: "MIICnTCCAYUCBgGcM2oMbjANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDDAdlcGljdXJhMB4XDTI2MDIwNjE0NDMzM1oXDTM2MDIwNjE0NDUxM1owEjEQMA4GA1UEAwwHZXBpY3VyYTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJ9FsoJIO5BguxOpCcX/f/dql9vKNilRC5pHqgCsxGnVglrmn5x0sIfQRUnTJh5/4Ycc/TVyJLKykaUK0Bc7qPtLOa+ewtBBoL4Or32z6vTbVT256Ib/n5D1bU7qLcn/MQzzFW26IfD/Qy8VkoIsy+r+VyRwL/d3nTXtR0QIHkT7amA+w5W0EX0A99FZJhwSYZppjIuf8Fi8RxKOmRn3r4ymkN+bgwx2dd+pHuMEvoCvnKXbCvEEGAwozNWQEQvHshgFSqIvl5ScCpT/cEyEkRe/05su5gpWmpoUxyNS2/osARn9yIdDrHUUn/OIiiQERI86Uwjknu0ip1i4S53/ts0CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAKc4ztZhrrq2YqyXIQxMEoDUVDLjrspkHub1d6hRZBbM/ldXEWyFJul3brxiOGtXCZnGK7GQn01DSd2owf+sL0ZUs0BiPlfQFmJnGxTKQIRM0SxvgmagYq9Ydh44g0FofsFSD/gTLZ6JqZNYi0P45ppRjM91WHgzR4NCAE2m3fGU72VA6sdcUmhPkYzanW0JoAMHwEvNYA3Jj9GV/jtn85k+DPhgDJeE+eaBCJa5bXu4Oc/d9IM78ReUe48udqneHucSD4mZpWBCOYoDEvFa7iEFP5OsG/fwIWWlGEQAxWe+3G9K4OZBraAj+Qh1d0kBuwfiVXySEcIwdbreY03C8gQ==" 
+      HL7_API_KEY: ${HL7_API_KEY}
+      HL7_AUTO_SCHEDULE_CALLS: ${HL7_AUTO_SCHEDULE_CALLS}
+      MIRTH_TRANSPORT: ${MIRTH_TRANSPORT}
+      MIRTH_HTTP_URL: ${MIRTH_HTTP_URL}
+      PROMETHEUS_ENABLED: "true"
+      GDPR_DATA_RETENTION_YEARS: ${GDPR_DATA_RETENTION_YEARS}
+      GDPR_CONSENT_REQUIRED: ${GDPR_CONSENT_REQUIRED}
+      VOICE_BARGE_IN_ENABLED: ${VOICE_BARGE_IN_ENABLED}
+    volumes:
+      - recordings:/app/recordings
+      - /root/hellojade/temp/tts:/app/temp/tts
+      - /var/spool/asterisk/recording:/var/spool/asterisk/recording:rw
+      - /root/hellojade/reports:/app/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --log-level info
+    networks:
+      - hellojadeapp-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery-worker:
+    image: hellojadeapp-backend:latest
+    container_name: hellojadeapp-celery
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hellojadeapp:${POSTGRES_PASSWORD}@postgres:5432/hellojadeapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      APP_ENV: production
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+    volumes:
+      - recordings:/app/recordings
+      - /root/hellojade/temp/tts:/app/temp/tts
+      - /root/hellojade/reports:/app/reports
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4 --max-tasks-per-child=1000
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping --timeout 5 2>/dev/null | grep -q pong"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    networks:
+      - hellojadeapp-app
+
+  celery-beat:
+    image: hellojadeapp-backend:latest
+    container_name: hellojadeapp-celery-beat
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hellojadeapp:${POSTGRES_PASSWORD}@postgres:5432/hellojadeapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      APP_ENV: production
+    volumes:
+      - /root/hellojade/reports:/app/reports
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' > /dev/null || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hellojadeapp-app
+
+  nginx:
+    image: nginx:alpine
+    container_name: hellojadeapp-nginx
+    ports:
+      - "8080:8080"
+    volumes:
+      - /root/hellojade/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /root/hellojade/frontend:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - hellojadeapp-app
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: hellojadeapp-cloudflared
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    networks:
+      - hellojadeapp-app
+
+volumes:
+  postgres_data:
+  redis_data:
+  keycloak_db_data:
+  recordings:
+  nginx_logs:
+
+networks:
+  hellojadeapp-app:
+    driver: bridge

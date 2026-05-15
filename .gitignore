@@ -1,6 +1,62 @@
+# ─── Secrets & Config sensible ────────────────────────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ─── Données patients / RGPD ──────────────────────────────────────────────────
 temp/
 reports/
-*.sql
+keycloak/epicura-users-0.json
+/var/spool/asterisk/
+
+# ─── Archives & backups ───────────────────────────────────────────────────────
 *.zip
 *.tar.gz
+*.bak
+*.sql
+*.dump
+frontend_backup/
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ─── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+.npm
+*.local
+
+# ─── IDEs & éditeurs ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+.claude/
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/

@@ -1,0 +1,289 @@
+[
+  {
+    "canonical": "Paracétamol",
+    "dci": "Paracétamol",
+    "category": "antidouleur",
+    "phonetic_syllables": "pa-ra-sé-ta-mol",
+    "phrase_list_entries": ["Paracétamol", "paracetamol", "parasétamol"],
+    "variants": [
+      "paracétamol", "paracetamol", "parasétamol", "parasetamol",
+      "para cétamol", "para cetamol", "paracétamo", "paracétamolle"
+    ]
+  },
+  {
+    "canonical": "Dafalgan",
+    "dci": "Paracétamol",
+    "category": "antidouleur",
+    "phonetic_syllables": "da-fal-gan",
+    "phrase_list_entries": ["Dafalgan", "dafalgan"],
+    "variants": [
+      "dafalgan", "dafalgane", "dafalgann", "dafalguane",
+      "dafalgant", "daffalgan", "da falgan"
+    ]
+  },
+  {
+    "canonical": "Aspirine",
+    "dci": "Acide acétylsalicylique",
+    "category": "antidouleur",
+    "phonetic_syllables": "as-pi-rin",
+    "phrase_list_entries": ["Aspirine", "aspirine"],
+    "variants": [
+      "aspirine", "aspirin", "aspirin", "assirine", "asperine",
+      "aspérine", "asspirine", "a aspirine"
+    ]
+  },
+  {
+    "canonical": "Tradonal",
+    "dci": "Tramadol",
+    "category": "antidouleur",
+    "phonetic_syllables": "tra-do-nal",
+    "phrase_list_entries": ["Tradonal", "tradonal", "Tramadol", "tramadol"],
+    "variants": [
+      "tradonal", "tradonale", "traddonnal", "tradonnal",
+      "tramadol", "tramadole", "tramadolle", "tra madol", "tra-madol"
+    ]
+  },
+  {
+    "canonical": "Dipidolor",
+    "dci": "Piritramide",
+    "category": "antidouleur",
+    "phonetic_syllables": "di-pi-do-lor",
+    "phrase_list_entries": ["Dipidolor", "dipidolor", "Piritramide"],
+    "variants": [
+      "dipidolor", "dipidolore", "dipidollor", "dipi dolor",
+      "piritramide", "piritramid", "piritramyde"
+    ]
+  },
+  {
+    "canonical": "Morphine",
+    "dci": "Morphine",
+    "category": "antidouleur",
+    "phonetic_syllables": "mor-feen",
+    "phrase_list_entries": ["Morphine", "morphine"],
+    "variants": [
+      "morphine", "morfine", "morphin", "morphyne",
+      "morfeen", "morf", "la morphine"
+    ]
+  },
+  {
+    "canonical": "Oxynorm",
+    "dci": "Oxycodone",
+    "category": "antidouleur",
+    "phonetic_syllables": "ok-si-norm",
+    "phrase_list_entries": ["Oxynorm", "oxynorm", "Oxycodone", "oxycodone"],
+    "variants": [
+      "oxynorm", "oksinorm", "oxy norme", "oxy-norm",
+      "oxycodone", "oksikodon", "oxicodone", "oxycodon"
+    ]
+  },
+  {
+    "canonical": "Lyrica",
+    "dci": "Prégabaline",
+    "category": "antidouleur",
+    "phonetic_syllables": "li-ri-ka",
+    "phrase_list_entries": ["Lyrica", "lyrica", "Prégabaline", "pregabaline"],
+    "variants": [
+      "lyrica", "lirica", "lirika", "lyrrica",
+      "prégabaline", "pregabaline", "pregabalin", "préga baline"
+    ]
+  },
+  {
+    "canonical": "Perdolan",
+    "dci": "Paracétamol",
+    "category": "antidouleur",
+    "phonetic_syllables": "per-do-lan",
+    "phrase_list_entries": ["Perdolan", "perdolan"],
+    "variants": [
+      "perdolan", "perdolane", "perdonlan", "per dolan",
+      "perdolantte", "perdolant"
+    ]
+  },
+  {
+    "canonical": "Acide acétylsalicylique",
+    "dci": "Acide acétylsalicylique",
+    "category": "antidouleur",
+    "phonetic_syllables": "a-sid a-sé-til sa-li-si-lik",
+    "phrase_list_entries": ["acide acétylsalicylique", "acide acetylsalicylique"],
+    "variants": [
+      "acide acétylsalicylique", "acide acetylsalicylique",
+      "acide acetyl salicylique", "acide asétylsalicylique",
+      "acide salicylique", "acetylsalicylique"
+    ]
+  },
+  {
+    "canonical": "Durogesic",
+    "dci": "Fentanyl",
+    "category": "antidouleur",
+    "phonetic_syllables": "du-ro-jé-zik",
+    "phrase_list_entries": ["Durogesic", "durogesic", "Fentanyl", "fentanyl"],
+    "variants": [
+      "durogesic", "durogesik", "duro gesic", "durogésic",
+      "fentanyl", "fentanil", "fentanille", "phentanyl"
+    ]
+  },
+  {
+    "canonical": "Aspégic",
+    "dci": "Acide acétylsalicylique",
+    "category": "antidouleur",
+    "phonetic_syllables": "as-pé-jik",
+    "phrase_list_entries": ["Aspégic", "aspegic", "aspégic"],
+    "variants": [
+      "aspégic", "aspegic", "aspéjic", "aspéjique",
+      "aspejik", "as pégic", "aspegik"
+    ]
+  },
+  {
+    "canonical": "Tramadol/Paracétamol",
+    "dci": "Tramadol et Paracétamol",
+    "category": "antidouleur",
+    "phonetic_syllables": "tra-ma-dol",
+    "phrase_list_entries": ["Tramadol", "tramadol", "tramadol paracétamol"],
+    "variants": [
+      "tramadol", "tramadole", "tramadolle", "tra madol",
+      "tramadol paracétamol", "tramadol paracetamol"
+    ]
+  },
+  {
+    "canonical": "Novalgine",
+    "dci": "Métamizole sodique",
+    "category": "antidouleur",
+    "phonetic_syllables": "no-val-jin",
+    "phrase_list_entries": ["Novalgine", "novalgine"],
+    "variants": [
+      "novalgine", "novalgin", "novaljine", "novalgin",
+      "no valgine", "novaljin", "novalguine"
+    ]
+  },
+  {
+    "canonical": "Gabapentine",
+    "dci": "Gabapentine",
+    "category": "antidouleur",
+    "phonetic_syllables": "ga-ba-pen-tin",
+    "phrase_list_entries": ["Gabapentine", "gabapentine", "gabapentin"],
+    "variants": [
+      "gabapentine", "gabapentin", "gaba pentine", "gabba pentine",
+      "gabapenntine", "gaba-pentine", "gabapentinn"
+    ]
+  },
+  {
+    "canonical": "Oxycodone",
+    "dci": "Oxycodone",
+    "category": "antidouleur",
+    "phonetic_syllables": "ok-si-ko-don",
+    "phrase_list_entries": ["Oxycodone", "oxycodone"],
+    "variants": [
+      "oxycodone", "oksikodon", "oxicodone", "oxycodon",
+      "oxy codone", "oksy codone", "oxycodonne"
+    ]
+  },
+  {
+    "canonical": "Palexia",
+    "dci": "Tapentadol",
+    "category": "antidouleur",
+    "phonetic_syllables": "pa-lek-si-a",
+    "phrase_list_entries": ["Palexia", "palexia", "Tapentadol", "tapentadol"],
+    "variants": [
+      "palexia", "palexia", "paléxia", "palek sia",
+      "tapentadol", "tapentadole", "tapenta dol"
+    ]
+  },
+  {
+    "canonical": "Algostase",
+    "dci": "Paracétamol",
+    "category": "antidouleur",
+    "phonetic_syllables": "al-go-staz",
+    "phrase_list_entries": ["Algostase", "algostase"],
+    "variants": [
+      "algostase", "algostaze", "algo stase", "algostaz",
+      "algotase", "algo-stase"
+    ]
+  },
+  {
+    "canonical": "Paracodine",
+    "dci": "Dihydrocodéine",
+    "category": "antidouleur",
+    "phonetic_syllables": "pa-ra-ko-din",
+    "phrase_list_entries": ["Paracodine", "paracodine"],
+    "variants": [
+      "paracodine", "parakodin", "para codine", "paracodine",
+      "parakodine", "para-codine", "paracodin"
+    ]
+  },
+  {
+    "canonical": "Transtec",
+    "dci": "Fentanyl",
+    "category": "antidouleur",
+    "phonetic_syllables": "trans-tek",
+    "phrase_list_entries": ["Transtec", "transtec"],
+    "variants": [
+      "transtec", "trantek", "trans tec", "trans-tec",
+      "transteck", "transtek"
+    ]
+  },
+  {
+    "canonical": "Imitrex",
+    "dci": "Sumatriptan",
+    "category": "antidouleur",
+    "phonetic_syllables": "i-mi-trex",
+    "phrase_list_entries": ["Imitrex", "imitrex", "Sumatriptan", "sumatriptan"],
+    "variants": [
+      "imitrex", "imitreks", "imi trex", "imistrex",
+      "sumatriptan", "sumatriplant", "sumatripttane"
+    ]
+  },
+  {
+    "canonical": "Prégabaline",
+    "dci": "Prégabaline",
+    "category": "antidouleur",
+    "phonetic_syllables": "pré-ga-ba-lin",
+    "phrase_list_entries": ["Prégabaline", "pregabaline", "prégabalin", "pregabalin"],
+    "variants": [
+      "prégabaline", "pregabaline", "prégabalin", "pregabalin",
+      "préga baline", "prega baline", "prégabbaline"
+    ]
+  },
+  {
+    "canonical": "Péthisom",
+    "dci": "Péthidine",
+    "category": "antidouleur",
+    "phonetic_syllables": "pé-ti-zom",
+    "phrase_list_entries": ["Péthisom", "pethisom"],
+    "variants": [
+      "péthisom", "pethisom", "péti som", "pétizom",
+      "péttisom", "peti-som"
+    ]
+  },
+  {
+    "canonical": "Sativex",
+    "dci": "Cannabinoïdes (nabiximols)",
+    "category": "antidouleur",
+    "phonetic_syllables": "sa-ti-vex",
+    "phrase_list_entries": ["Sativex", "sativex"],
+    "variants": [
+      "sativex", "satirvex", "sati vex", "satyvex",
+      "sattivex", "sati-vex"
+    ]
+  },
+  {
+    "canonical": "Vyepti",
+    "dci": "Eptinézumab",
+    "category": "antidouleur",
+    "phonetic_syllables": "vi-ep-ti",
+    "phrase_list_entries": ["Vyepti", "vyepti"],
+    "variants": [
+      "vyepti", "viepti", "vi epti", "viep ti",
+      "vyeptie", "viepty"
+    ]
+  },
+  {
+    "canonical": "MS Contin",
+    "dci": "Morphine",
+    "category": "antidouleur",
+    "phonetic_syllables": "em-es",
+    "phrase_list_entries": ["MS Contin", "ms contin", "MSContin"],
+    "variants": [
+      "ms contin", "emess contin", "em es contin", "mscontin",
+      "ms-contin", "em-es contin", "em ès contin"
+    ]
+  }
+]
