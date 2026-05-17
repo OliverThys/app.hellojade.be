@@ -66,6 +66,7 @@ from app.services.telephony.questionnaire import (
     PROCHE_QUESTION,
     QUESTIONNAIRE,
     RETRY_PREFIXES,
+    NSP_MESSAGE,
     SKIP_MESSAGE,
     WELCOME_MESSAGE,
     short_reprompt_after_out_of_scope,
@@ -83,15 +84,15 @@ REDIS_TTL = 7200  # 2 heures
 # Durées d'enregistrement
 RECORD_DURATION_SHORT = 10
 RECORD_DURATION_LONG = 20
-SILENCE_TIMEOUT = 1          # secondes de silence = fin de parole (fallback si TALK_DETECT échoue)
+SILENCE_TIMEOUT = 2          # secondes de silence = fin de parole (fallback si TALK_DETECT échoue)
 
 UNCLEAR_CONFIDENCE_THRESHOLD = 0.15
-UNCLEAR_MAX_RETRIES = 1
+UNCLEAR_MAX_RETRIES = 2
 
 # Silence timeout différencié :
 # - SILENCE_TIMEOUT     : délai initial (patient n'a pas encore parlé) → laisse le temps de réfléchir
 # - END_SILENCE_TIMEOUT : délai après le dernier mot → coupe plus vite une fois la phrase terminée
-END_SILENCE_TIMEOUT = 1.0   # secondes après le dernier mot du patient
+END_SILENCE_TIMEOUT = 1.3   # secondes après le dernier mot du patient
 
 # Durée minimale de lecture d'un ACK avant de le couper si l'analyse est déjà prête.
 # Évite qu'un son soit tranché trop tôt (ex: "Hm—" au lieu de "Hum hum.").
@@ -144,6 +145,36 @@ _META_SHORT_WORDS = frozenset({
     "pardon", "hein", "quoi", "comment", "répétez",
     "répète", "re ?", "quoi ?", "hein ?",
 })
+
+# Demandes de reformulation / clarification
+_CLARIFICATION_KEYWORDS = (
+    "qu'est-ce que tu veux dire",
+    "qu'est-ce que vous voulez dire",
+    "qu'est-ce que tu entends par",
+    "qu'est-ce que vous entendez par",
+    "qu'est-ce que ça veut dire",
+    "vous pouvez expliquer",
+    "tu peux expliquer",
+    "pouvez-vous expliquer",
+    "je ne comprends pas la question",
+    "je comprends pas la question",
+    "c'est quoi exactement",
+    "vous pouvez préciser",
+    "tu peux préciser",
+    "vous pouvez reformuler",
+    "tu peux reformuler",
+)
+
+# Formules "ne sait pas" — réponse valide mais indéterminée
+_NSP_KEYWORDS = (
+    "je ne sais pas", "je sais pas", "j'sais pas", "sais pas",
+    "je ne saurais pas", "je saurais pas",
+    "pas sûr", "pas sûre", "pas certain", "pas certaine",
+    "je ne suis pas sûr", "je ne suis pas sûre",
+    "je ne suis pas certain", "je ne suis pas certaine",
+    "difficile à dire", "impossible à dire", "dur à dire",
+    "j'ignore", "je n'en sais rien", "aucune idée",
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ÉTATS
@@ -571,7 +602,7 @@ class AsteriskARIService:
     async def _record(self, channel_id: str, recording_name: str, max_duration: int) -> bool:
         """Lance l'enregistrement sur le channel."""
         cs = await call_settings_service.get()
-        silence_timeout = int(cs.get("silence_timeout_seconds", SILENCE_TIMEOUT))
+        silence_timeout = round(float(cs.get("silence_timeout_seconds", SILENCE_TIMEOUT)))
         result = await self._post(
             f"/channels/{channel_id}/record",
             name=recording_name,
@@ -1108,30 +1139,40 @@ class AsteriskARIService:
         )
 
         # ── Sélection du son ACK ──────────────────────────────────────────────
-        # Confirmation verbale courte (TTS Azure, anti-repeat sur les 4 dernières)
-        recent: list[int] = state.get("recent_acks", [])
-        available = [i for i in range(len(ACK_ENTRIES_NEUTRAL)) if i not in recent]
-        if not available:
-            available = list(range(len(ACK_ENTRIES_NEUTRAL)))
-            recent = []
-        idx = random.choice(available)
-        state["recent_acks"] = (recent + [idx])[-4:]
-        ack_text, ack_rate, ack_pitch = ACK_ENTRIES_NEUTRAL[idx]
-        ack_ssml = azure_tts_service.build_ssml(ack_text, rate=ack_rate, pitch=ack_pitch)
-        ack_file = await self._synthesize(ack_ssml, "ack", use_ssml=True)
+        # Joué 1 fois sur 2 — tirage aléatoire avant sélection
+        if random.random() < 0.5:
+            # Confirmation verbale courte (TTS Azure, anti-repeat sur les 4 dernières)
+            recent: list[int] = state.get("recent_acks", [])
+            available = [i for i in range(len(ACK_ENTRIES_NEUTRAL)) if i not in recent]
+            if not available:
+                available = list(range(len(ACK_ENTRIES_NEUTRAL)))
+                recent = []
+            idx = random.choice(available)
+            state["recent_acks"] = (recent + [idx])[-4:]
+            ack_text, ack_rate, ack_pitch = ACK_ENTRIES_NEUTRAL[idx]
+            ack_ssml = azure_tts_service.build_ssml(ack_text, rate=ack_rate, pitch=ack_pitch)
+            ack_file = await self._synthesize(ack_ssml, "ack", use_ssml=True)
 
-        if ack_file:
-            playback_id = await self._play(channel_id, f"{ASTERISK_SOUNDS_PREFIX}/{ack_file}")
-            state.update({
-                "state": CallState.ANALYZING,
-                "last_playback_id": playback_id,
-                "last_playback_role": "ack",
-                "ack_started_at": asyncio.get_event_loop().time(),
-                "last_tts_file": ack_file,
-            })
-            await self._save_state(channel_id, state)
+            if ack_file:
+                playback_id = await self._play(channel_id, f"{ASTERISK_SOUNDS_PREFIX}/{ack_file}")
+                state.update({
+                    "state": CallState.ANALYZING,
+                    "last_playback_id": playback_id,
+                    "last_playback_role": "ack",
+                    "ack_started_at": asyncio.get_event_loop().time(),
+                    "last_tts_file": ack_file,
+                })
+                await self._save_state(channel_id, state)
+            else:
+                # Fallback si TTS échoue : on continue sans ACK
+                state.update({"state": CallState.ANALYZING})
+                state["_ack_ready"] = True
+                await self._save_state(channel_id, state)
+                fresh_ack = await self._get_state(channel_id)
+                if fresh_ack and fresh_ack.get("_stt_ready"):
+                    await self._after_ack_and_stt(channel_id, fresh_ack)
         else:
-            # Fallback si TTS échoue : on continue sans ACK
+            # ACK sauté — on passe directement à l'analyse
             state.update({"state": CallState.ANALYZING})
             state["_ack_ready"] = True
             await self._save_state(channel_id, state)
@@ -1264,13 +1305,17 @@ class AsteriskARIService:
                 state["_needs_skip"] = True  # Option 3 : annonce avant la question suivante
                 self._advance_question(state, {"answer": None})
 
-                # Détection précoce répondeur : si ≥2 questions consécutives
-                # entièrement skippées (silence persistant) → messagerie vocale
-                _skipped_count = sum(
-                    1 for a in state["answers"]
-                    if a.get("parsed", {}).get("skipped")
-                )
-                if _skipped_count >= 2:
+                # Détection précoce répondeur : si ≥2 questions CONSÉCUTIVES en fin
+                # de liste sont skippées (silence persistant) → messagerie vocale.
+                # On compte les skips en queue pour ne pas raccrocher si une question
+                # a été répondue entre deux silences (faux positif répondeur).
+                _trailing_skipped = 0
+                for _a in reversed(state["answers"]):
+                    if _a.get("parsed", {}).get("skipped"):
+                        _trailing_skipped += 1
+                    else:
+                        break
+                if _trailing_skipped >= 2:
                     logger.info(
                         f"[ARI] Messagerie détectée ({_skipped_count} questions sans réponse) "
                         f"— raccrocher immédiatement"
@@ -1283,6 +1328,53 @@ class AsteriskARIService:
                 # → fall through vers le rendezvous
 
             else:
+                # Demande de clarification : le patient ne comprend pas la question
+                if any(kw in _t_lower for kw in _CLARIFICATION_KEYWORDS):
+                    logger.info(
+                        f"[ARI] Demande de clarification détectée — reformulation "
+                        f"| transcript='{transcript[:60]}' (channel: {channel_id})"
+                    )
+                    state["_needs_clarification"] = True
+                    state["retry_count"] = 0
+                    state["_stt_ready"] = True
+                    await self._save_state(channel_id, state)
+                    fresh = await self._get_state(channel_id)
+                    if fresh and fresh.get("_ack_ready"):
+                        await self._after_ack_and_stt(channel_id, fresh)
+                    return
+
+                # Ne sait pas : réponse valide mais indéterminée — skip propre sans brûler de retry
+                if any(kw in _t_lower for kw in _NSP_KEYWORDS):
+                    logger.info(
+                        f"[ARI] Réponse \"ne sait pas\" — skip propre "
+                        f"| transcript='{ transcript[:60]}' (channel: {channel_id})"
+                    )
+                    answer_entry = {
+                        "question_id": current_q.get("id", "unknown"),
+                        "question": _q_text,
+                        "transcript": transcript,
+                        "parsed": {
+                            "answer": None,
+                            "understood": True,
+                            "confidence": 0.9,
+                            "out_of_scope": False,
+                            "skipped": False,
+                            "notes": "ne sait pas",
+                        },
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    state["answers"].append(answer_entry)
+                    state["retry_count"] = 0
+                    state["_needs_retry"] = False
+                    state["_needs_nsp"] = True
+                    self._advance_question(state, {"answer": None})
+                    state["_stt_ready"] = True
+                    await self._save_state(channel_id, state)
+                    fresh = await self._get_state(channel_id)
+                    if fresh and fresh.get("_ack_ready"):
+                        await self._after_ack_and_stt(channel_id, fresh)
+                    return
+
                 # Fast-path yesno : court-circuit Mistral pour réponses évidentes (~700ms économisé)
                 _q_type_now = current_q.get("type", "yesno")
                 parsed = _fast_yesno_parse(transcript) if _q_type_now == "yesno" else None
@@ -1335,8 +1427,41 @@ class AsteriskARIService:
 
                 # Hors périmètre : message dédié puis même question (sans compter comme retry métier)
                 if mistral_service.parsed_is_out_of_scope(parsed):
+                    _current_q_id = current_q.get("id", "unknown")
+                    _oob_count_for_q = sum(
+                        1 for a in state["answers"]
+                        if a.get("question_id") == _current_q_id
+                        and a.get("parsed", {}).get("out_of_scope")
+                    )
+                    if _oob_count_for_q >= 2:
+                        # Trop de hors-périmètre sur la même question → skip NSP
+                        answer_entry = {
+                            "question_id": _current_q_id,
+                            "question": _q_text,
+                            "transcript": transcript,
+                            "parsed": {
+                                **parsed,
+                                "out_of_scope": True,
+                                "understood": True,
+                                "answer": None,
+                                "notes": "hors périmètre répété — skip NSP",
+                            },
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                        state["answers"].append(answer_entry)
+                        state["retry_count"] = 0
+                        state["_needs_retry"] = False
+                        state["_needs_skip"] = False
+                        state["_needs_nsp"] = True
+                        self._advance_question(state, {"answer": None})
+                        state["_stt_ready"] = True
+                        await self._save_state(channel_id, state)
+                        fresh = await self._get_state(channel_id)
+                        if fresh and fresh.get("_ack_ready"):
+                            await self._after_ack_and_stt(channel_id, fresh)
+                        return
                     answer_entry = {
-                        "question_id": current_q.get("id", "unknown"),
+                        "question_id": _current_q_id,
                         "question": _q_text,
                         "transcript": transcript,
                         "parsed": {
@@ -1496,6 +1621,13 @@ class AsteriskARIService:
         state.pop("_ack_ready", None)
         state.pop("_stt_ready", None)
         await self._save_state(channel_id, state)
+        if state.pop("_needs_nsp", False):
+            state["_needs_nsp_flag"] = True
+            await self._ask_next_question(channel_id, state)
+            return
+        if state.pop("_needs_clarification", False):
+            await self._play_clarification_and_repeat_question(channel_id, state)
+            return
         if state.pop("_needs_oob", False):
             await self._play_out_of_scope_and_repeat_question(channel_id, state)
             return
@@ -1841,7 +1973,8 @@ class AsteriskARIService:
 
         needs_retry = state.pop("_needs_retry", False)
         needs_skip = state.pop("_needs_skip", False)
-        logger.info(f"[ARI] Next question: q={q_idx} fu={fu_idx} retry={needs_retry} skip={needs_skip} (channel: {channel_id})")
+        needs_nsp = state.pop("_needs_nsp_flag", False)
+        logger.info(f"[ARI] Next question: q={q_idx} fu={fu_idx} retry={needs_retry} skip={needs_skip} nsp={needs_nsp} (channel: {channel_id})")
 
         if not needs_retry and q_idx >= len(qnav):
             # Fin du questionnaire : transfert si alerte clinique / demande patient, sinon clôture standard
@@ -1915,6 +2048,25 @@ class AsteriskARIService:
                 q_text = SKIP_MESSAGE + " " + q_text
                 hint += "_skip"
 
+        # NSP : "Je comprends, pas de souci. Passons à la suite."
+        elif needs_nsp:
+            static_nsp = self._static("nsp")
+            if static_nsp:
+                playback_id = await self._play(channel_id, f"{ASTERISK_SOUNDS_PREFIX}/{static_nsp}")
+                state.update({
+                    "state": CallState.QUESTIONING,
+                    "last_playback_id": playback_id,
+                    "last_playback_role": "skip_prefix_play",
+                    "last_tts_file": None,
+                    "_pending_question_text": q_text,
+                    "_pending_question_hint": hint,
+                })
+                await self._save_state(channel_id, state)
+                return
+            else:
+                q_text = NSP_MESSAGE + " " + q_text
+                hint += "_nsp"
+
         tts_file = await self._synthesize(q_text, hint)
         if not tts_file:
             await self._hangup(channel_id)
@@ -1974,6 +2126,39 @@ class AsteriskARIService:
         )
         return hint, entries
 
+    async def _play_clarification_and_repeat_question(
+        self, channel_id: str, state: Dict[str, Any]
+    ) -> None:
+        """Après demande de clarification : joue clarification_reprompt (ou reformulation générique)."""
+        qnav = self._questionnaire(state)
+        q_idx = state["current_question_index"]
+        fu_idx = state["current_follow_up_index"]
+        if fu_idx >= 0:
+            q_data = qnav[q_idx]["follow_ups"][fu_idx]
+            hint = f"clarif_q{q_idx}_fu{fu_idx}"
+        else:
+            q_data = qnav[q_idx]
+            hint = f"clarif_q{q_idx}"
+
+        caller_role = state.get("caller_role") or "patient"
+        clarif_text = q_data.get("clarification_reprompt")
+        if not clarif_text:
+            q_text = self._get_question_text(q_data, caller_role)
+            clarif_text = f"Permettez-moi de reformuler. {q_text}"
+
+        tts_file = await self._synthesize(clarif_text, hint)
+        if not tts_file:
+            await self._hangup(channel_id)
+            return
+        playback_id = await self._play(channel_id, f"{ASTERISK_SOUNDS_PREFIX}/{tts_file}")
+        state.update({
+            "state": CallState.QUESTIONING,
+            "last_playback_id": playback_id,
+            "last_playback_role": "question",
+            "last_tts_file": tts_file,
+        })
+        await self._save_state(channel_id, state)
+
     async def _play_out_of_scope_and_repeat_question(
         self, channel_id: str, state: Dict[str, Any]
     ) -> None:
@@ -1994,10 +2179,17 @@ class AsteriskARIService:
         reprompt_key = f"reprompt_{qtype}" if qtype in ("yesno", "score", "open") else None
         reprompt_static = self._static(reprompt_key) if reprompt_key else None
 
+        # Texte de reprompt : priorité au champ oob_reprompt de la question (plus précis)
+        custom_oob_reprompt = q_data.get("oob_reprompt")
+        if custom_oob_reprompt:
+            tail_text = custom_oob_reprompt
+            reprompt_static = None  # forcer TTS dynamique
+        else:
+            tail_text = short_reprompt_after_out_of_scope(qtype, choices)
+
         # Essayer la chaîne statique : out_of_scope → reprompt
         oob_static = self._static("out_of_scope")
         if oob_static:
-            tail_text = short_reprompt_after_out_of_scope(qtype, choices)
             # Chaîne statique : out_of_scope → reprompt (statique si dispo, sinon TTS)
             pending: Dict[str, Any] = {
                 "state": CallState.QUESTIONING,
@@ -2009,7 +2201,7 @@ class AsteriskARIService:
                 # Reprompt pré-généré (yesno / score / open)
                 pending["_pending_question_static"] = reprompt_static
             else:
-                # Type choice : reprompt dynamique
+                # Reprompt dynamique (type choice ou oob_reprompt custom)
                 pending["_pending_question_text"] = tail_text
             playback_id = await self._play(channel_id, f"{ASTERISK_SOUNDS_PREFIX}/{oob_static}")
             pending["last_playback_id"] = playback_id
@@ -2659,6 +2851,7 @@ class AsteriskARIService:
         static_map: list[tuple[str, str]] = [
             ("retry_prefix",       RETRY_PREFIXES[0]),
             ("skip",               SKIP_MESSAGE),
+            ("nsp",                NSP_MESSAGE),
             ("out_of_scope",       OUT_OF_SCOPE_MESSAGE),
             ("reprompt_yesno",     short_reprompt_after_out_of_scope("yesno")),
             ("reprompt_score",     short_reprompt_after_out_of_scope("score")),

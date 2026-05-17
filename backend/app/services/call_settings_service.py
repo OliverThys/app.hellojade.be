@@ -26,7 +26,7 @@ DEFAULTS: Dict[str, Any] = {
     "retry_delay_hours": 4,
     "amd_behavior": "retry",
     "max_call_duration_minutes": 10,
-    "silence_timeout_seconds": 1,
+    "silence_timeout_seconds": 2,
 }
 
 _CACHE_TTL = 60  # secondes
