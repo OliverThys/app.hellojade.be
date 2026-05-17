@@ -613,6 +613,7 @@ class MistralService:
                 choices,
                 upcoming_context,
                 upcoming_questions,
+                caller_role=caller_role,
             )
             if result:
                 return result
@@ -687,6 +688,7 @@ class MistralService:
         choices: Optional[list],
         upcoming_context: Optional[str] = None,
         upcoming_questions: Optional[list] = None,
+        caller_role: str = "patient",
     ) -> Optional[Dict[str, Any]]:
         """Fallback Azure OpenAI GPT-4o-mini."""
         user_content = self._build_user_message(
@@ -707,7 +709,7 @@ class MistralService:
                 },
                 json={
                     "messages": [
-                        {"role": "system", "content": _SYSTEM_PROMPT},
+                        {"role": "system", "content": _build_system_prompt(caller_role)},
                         {"role": "user", "content": user_content},
                     ],
                     "temperature": 0.1,

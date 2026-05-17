@@ -1,5 +1,5 @@
 """
-Questionnaire médical post-hospitalisation HelloJADE — Maolys.
+Questionnaire médical post-hospitalisation hellojade — Maolys.
 
 Modèle par défaut et repli si la base ne contient pas de questions actives.
 Les appels en production chargent de préférence le questionnaire depuis la DB
@@ -12,7 +12,7 @@ RECORD_DURATION_SHORT = 10
 RECORD_DURATION_LONG = 20
 
 WELCOME_MESSAGE = (
-    "Bonjour, je suis Jade, l'assistante vocale HelloJADE. "
+    "Bonjour, je suis Jade, l'assistante vocale hellojade. "
     "Je vous appelle dans le cadre d'une démonstration de suivi post-hospitalisation."
 )
 
@@ -114,6 +114,7 @@ QUESTIONNAIRE: List[Dict[str, Any]] = [
                 ),
                 "type": "yesno",
                 "record_duration": RECORD_DURATION_SHORT,
+                "alert_if": "oui",
             },
             {
                 "id": "Q1d_antidouleurs",
@@ -183,6 +184,11 @@ QUESTIONNAIRE: List[Dict[str, Any]] = [
         "question_proche": "Son pansement est-il propre et sec ?",
         "type": "yesno",
         "record_duration": RECORD_DURATION_SHORT,
+        "clarification_reprompt": (
+            "Je vous demande si le pansement — la compresse ou le bandage sur votre cicatrice "
+            "— est propre, sans tache de sang ni écoulement, et bien sec. "
+            "Est-ce le cas ?"
+        ),
         "follow_ups": [
             {
                 "id": "Q4a_sang",
@@ -218,6 +224,11 @@ QUESTIONNAIRE: List[Dict[str, Any]] = [
                 "type": "yesno",
                 "record_duration": RECORD_DURATION_SHORT,
                 "alert_if": "oui",
+                "clarification_reprompt": (
+                    "Je vous demande si le motif de cette consultation médicale "
+                    "était directement lié à votre opération récente. "
+                    "Était-ce le cas ?"
+                ),
             },
         ],
     },
@@ -240,6 +251,7 @@ QUESTIONNAIRE: List[Dict[str, Any]] = [
                 "question": "Pouvez-vous me décrire brièvement ce symptôme ?",
                 "type": "open",
                 "record_duration": RECORD_DURATION_LONG,
+                "oob_reprompt": "Décrivez votre symptôme en quelques mots. Par exemple : de la fièvre, des nausées, une douleur.",
             },
         ],
         "alert_if": "oui",
@@ -331,6 +343,9 @@ RETRY_PREFIXES = [
 
 # Message joué avant la question suivante quand le max de retries est atteint (Option 3)
 SKIP_MESSAGE = "Je passe à la suite."
+
+# Message joué quand le patient ne sait pas répondre (réponse valide mais indéterminée)
+NSP_MESSAGE = "Je comprends, pas de souci. Passons à la suite."
 
 # Quand aucune question active n'est configurée en base
 NO_ACTIVE_QUESTIONS_MESSAGE = (

@@ -1317,7 +1317,7 @@ class AsteriskARIService:
                         break
                 if _trailing_skipped >= 2:
                     logger.info(
-                        f"[ARI] Messagerie détectée ({_skipped_count} questions sans réponse) "
+                        f"[ARI] Messagerie détectée ({_trailing_skipped} questions consécutives sans réponse) "
                         f"— raccrocher immédiatement"
                     )
                     state["_amd_detected"] = True
@@ -1544,7 +1544,11 @@ class AsteriskARIService:
                                 state["alert_reason"] = current_q.get("id", "")
                 if alert_if_gte is not None:
                     try:
-                        if float(parsed.get("answer") or 0) >= float(alert_if_gte):
+                        import re as _re
+                        _raw_score = str(parsed.get("answer") or "")
+                        _score_match = _re.search(r"\d+", _raw_score)
+                        _score_val = float(_score_match.group()) if _score_match else 0.0
+                        if _score_val >= float(alert_if_gte):
                             state["alert_triggered"] = True
                             if not state.get("alert_type"):
                                 state["alert_type"] = current_q.get("alert_type", "clinical")
@@ -1558,14 +1562,14 @@ class AsteriskARIService:
 
                 # Alerte croisée Q2+Q3 : patient ne s'alimente pas (Q2=non)
                 # ET n'a ni nausées ni vomissements pour l'expliquer (Q3=non)
-                if current_q.get("id") == "Q3_nausees" and parsed.get("answer") == "non":
+                if current_q.get("id") == "Q3_nausees" and (parsed.get("answer") or "").lower() == "non":
                     q2_answer = next(
                         (a.get("parsed", {}).get("answer")
                          for a in reversed(state["answers"])
                          if a.get("question_id") == "Q2_alimentation"),
                         None,
                     )
-                    if q2_answer == "non" and not state.get("alert_triggered"):
+                    if (q2_answer or "").lower() == "non" and not state.get("alert_triggered"):
                         state["alert_triggered"] = True
                         state["alert_type"] = "clinical"
                         state["alert_reason"] = "alimentation_non_nausee_non"
@@ -1716,13 +1720,30 @@ class AsteriskARIService:
                 "parsed": pre_parsed,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
-            # Alerte éventuelle sur la question skippée
+            # Alerte éventuelle sur la question skippée (mirror de la logique principale)
             alert_if = next_q.get("alert_if")
             if alert_if and pre_val == alert_if:
                 state["alert_triggered"] = True
                 if not state.get("alert_type"):
                     state["alert_type"] = next_q.get("alert_type", "clinical")
                     state["alert_reason"] = next_q.get("id", "")
+            alert_conditions = next_q.get("alert_conditions", [])
+            for _cond in alert_conditions:
+                if pre_val == _cond:
+                    state["alert_triggered"] = True
+                    if not state.get("alert_type"):
+                        state["alert_type"] = next_q.get("alert_type", "clinical")
+                        state["alert_reason"] = next_q.get("id", "")
+            alert_if_gte = next_q.get("alert_if_gte")
+            if alert_if_gte is not None:
+                try:
+                    if float(pre_val or 0) >= float(alert_if_gte):
+                        state["alert_triggered"] = True
+                        if not state.get("alert_type"):
+                            state["alert_type"] = next_q.get("alert_type", "clinical")
+                            state["alert_reason"] = next_q.get("id", "")
+                except (ValueError, TypeError):
+                    pass
             _do_advance(qi, fj, pre_parsed)
 
     # ── Phase destinataire / proche / consentement ───────────────────────────
@@ -2424,8 +2445,9 @@ class AsteriskARIService:
                 # Cas 1 : zéro réponse collectée → échec identité ou patient non évaluable
                 elif not answers:
                     alert_triggered = True
-                    alert_type = "contact_failure"
-                    alert_reason = "identity_failed" if state.get("_identity_failed") else "no_response"
+                    if not alert_type or alert_type == "contact_failure":
+                        alert_type = "contact_failure"
+                        alert_reason = "identity_failed" if state.get("_identity_failed") else "no_response"
                 # Cas 2 : questionnaire interrompu avant complétion
                 elif not alert_triggered:
                     _incomplete_states = {
@@ -2439,8 +2461,10 @@ class AsteriskARIService:
                         alert_reason = "call_interrupted"
                 # Cas 3 : transfert demandé mais service non joignable
                 elif alert_type == "transfer" and ari_state != "transferring":
-                    alert_type = "contact_failure"
-                    alert_reason = "transfer_failed"
+                    # Conserver une alerte clinique si elle existait avant le transfert
+                    if not state.get("alert_type") or state.get("alert_type") == "contact_failure":
+                        alert_type = "contact_failure"
+                        alert_reason = "transfer_failed"
 
                 alert_symptom_detail = _extract_q6_symptom_detail(answers)
 
