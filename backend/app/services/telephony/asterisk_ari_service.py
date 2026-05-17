@@ -2417,8 +2417,10 @@ class AsteriskARIService:
                 )
                 if state.get("_amd_detected") or _all_skipped:
                     alert_triggered = True
-                    alert_type = "contact_failure"
-                    alert_reason = "answering_machine"
+                    # Ne pas écraser une alerte clinique déjà déclenchée par le questionnaire
+                    if not alert_type or alert_type == "contact_failure":
+                        alert_type = "contact_failure"
+                        alert_reason = "answering_machine"
                 # Cas 1 : zéro réponse collectée → échec identité ou patient non évaluable
                 elif not answers:
                     alert_triggered = True
