@@ -114,13 +114,19 @@ exemples : « bien compris », « OK merci », « c'est bon », « merci », « 
 « bonjour », « bonsoir » — alors tu DOIS mettre understood=false ET answer="" (chaîne vide). \
 Ne jamais mettre understood=true avec answer="" pour une question yesno, score ou choice.
 
-ANTICIPATION : si le patient, en répondant à la question actuelle, donne aussi l'information \
-pour une ou plusieurs questions futures, extrais ces réponses dans le champ "pre_answered". \
+ANTICIPATION : si le patient, en répondant à la question actuelle, répond aussi EXPLICITEMENT \
+à une ou plusieurs questions futures, extrais ces réponses dans le champ "pre_answered". \
 Ce champ est un objet {"id_question": "réponse_normalisée"}, ex. {"Q3b_vomissements_repetes": "non"}. \
-N'inclure dans "pre_answered" QUE les questions dont l'ID figure dans la liste \
-"Questions suivantes (IDs)" fournie dans le message utilisateur. \
-Pour la question ACTUELLE, utilise uniquement l'information qui y répond directement. \
-Si aucune anticipation n'est détectée, omets "pre_answered" ou mets {}.
+RÈGLES STRICTES pour pre_answered : \
+1. UNIQUEMENT les réponses EXPLICITES — ne jamais inférer ni extrapoler. \
+   Décrire un symptôme ne répond PAS à une question non posée. \
+   Ex : "j'ai mal à la jambe" ≠ réponse à "sur une échelle de 0 à 10 ?", \
+   ≠ "ça vous empêche de dormir ?", ≠ "vous mangez bien ?". \
+2. JAMAIS pré-répondre une question de type score si le patient ne donne pas un chiffre explicite (0–10). \
+   "j'ai assez mal" ou "j'ai beaucoup mal" ne sont PAS un score — omettre la pré-réponse. \
+3. N'inclure QUE les questions dont l'ID figure dans la liste "Questions suivantes (IDs)". \
+4. En cas de doute, omettre : une pré-réponse erronée est pire qu'une absence de pré-réponse. \
+5. Si aucune anticipation explicite n'est détectée, omets "pre_answered" ou mets {}.
 
 SYMPTÔME DÉCRIT COMME RÉPONSE IMPLICITE (PRIORITAIRE) : pour une question yesno portant sur des \
 symptômes, douleurs, ou état de santé, si le patient décrit un symptôme physique ou une plainte \
@@ -150,6 +156,20 @@ confidence entre 0.75 et 1.0, notes null ou courte observation.
 
 Mets "out_of_scope": false si le patient répond réellement au type de question \
 (oui/non explicite ou implicite via description de symptôme, score, choix, résumé open).
+
+RÈGLES STRICTES PAR TYPE DE QUESTION POUR out_of_scope :
+• score : si le patient décrit une intensité verbalement SANS donner de chiffre \
+  (ex. "j'ai beaucoup mal", "un peu", "pas trop", "assez fort", "ça fait mal"), \
+  mets understood=false, out_of_scope=false. \
+  Il répond au bon sujet, juste pas au bon format — NE PAS mettre out_of_scope=true. \
+  Ne mets out_of_scope=true que si le patient parle d'un sujet sans aucun rapport avec l'échelle demandée.
+• choice : si le patient donne une réponse approximative pouvant se rapprocher d'un choix \
+  (ex. "ça marche un peu" → "légèrement", "pas du tout" → "pas du tout"), \
+  mappe au choix le plus proche et mets understood=true, out_of_scope=false. \
+  Ne mets out_of_scope=true que si la réponse est sans aucun lien avec les choix proposés.
+• open : ne mets JAMAIS out_of_scope=true sauf si le patient parle d'un sujet totalement \
+  hors contexte médical (météo, sport, administrative non liée, etc.). \
+  Toute description de symptôme, état de santé ou vécu post-hospitalisation = out_of_scope=false.
 
 Rétrocompat : si out_of_scope est absent mais notes vaut exactement out_of_scope, traite comme hors périmètre.
 
