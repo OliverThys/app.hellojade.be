@@ -158,6 +158,104 @@ async def asterisk_health(current_user: User = Depends(get_current_user)) -> Any
     }
 
 
+
+
+# ── Board 3-colonnes ─────────────────────────────────────────────────────────
+
+class BoardPatient(dict):
+    pass
+
+
+@router.get("/board")
+async def get_calls_board(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Retourne le dernier appel par patient, classé en 3 colonnes :
+    - alerts   : alerte clinique ou transfert échoué
+    - ok       : appel complété sans alerte
+    - unreachable : contact_failure (hors transfer_failed)
+    """
+    from sqlalchemy import func as sa_func, text as sa_text
+
+    stmt = sa_text("""
+        WITH ranked AS (
+            SELECT
+                c.id,
+                c.patient_id,
+                c.status,
+                c.start_time,
+                c.end_time,
+                c.duration,
+                c.failure_reason,
+                c.metadata AS call_metadata,
+                c.retry_count,
+                c.max_retries,
+                p.nom,
+                p.prenom,
+                p.telephone,
+                p.next_call_scheduled,
+                p.manually_recalled,
+                a.risk_score,
+                a.alerts AS analysis_alerts,
+                a.summary AS analysis_summary,
+                ROW_NUMBER() OVER (PARTITION BY c.patient_id ORDER BY c.created_at DESC) AS rn
+            FROM calls c
+            JOIN patients p ON c.patient_id = p.id
+            LEFT JOIN analyses a ON a.call_id = c.id
+        )
+        SELECT * FROM ranked WHERE rn = 1
+        ORDER BY start_time DESC NULLS LAST
+    """)
+
+    result = await db.execute(stmt)
+    rows = result.mappings().all()
+
+    alerts = []
+    ok = []
+    unreachable = []
+
+    for r in rows:
+        meta = r["call_metadata"] or {}
+        alert_type = meta.get("alert_type")
+        alert_reason = meta.get("alert_reason")
+        alert_triggered = meta.get("alert_triggered", False)
+
+        card = {
+            "call_id": str(r["id"]),
+            "patient_id": str(r["patient_id"]),
+            "nom": r["nom"],
+            "prenom": r["prenom"],
+            "telephone": r["telephone"],
+            "status": r["status"],
+            "start_time": r["start_time"].isoformat() if r["start_time"] else None,
+            "end_time": r["end_time"].isoformat() if r["end_time"] else None,
+            "duration": r["duration"],
+            "alert_type": alert_type,
+            "alert_reason": alert_reason,
+            "risk_score": r["risk_score"],
+            "analysis_summary": r["analysis_summary"],
+            "next_call_scheduled": r["next_call_scheduled"].isoformat() if r["next_call_scheduled"] else None,
+            "manually_recalled": r["manually_recalled"],
+        }
+
+        is_transfer_failed = (
+            alert_type == "contact_failure" and alert_reason == "transfer_failed"
+        )
+        is_clinical = alert_type == "clinical"
+
+        if is_clinical or is_transfer_failed:
+            card["transfer_ok"] = not is_transfer_failed
+            alerts.append(card)
+        elif r["status"] == "completed" and not alert_triggered:
+            ok.append(card)
+        else:
+            card["retry_pending"] = r["next_call_scheduled"] is not None
+            unreachable.append(card)
+
+    return {"alerts": alerts, "ok": ok, "unreachable": unreachable}
+
 @router.get("", response_model=List[CallWithAnalysis])
 async def get_calls(
     patient_id: Optional[UUID] = None,

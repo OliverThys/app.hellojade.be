@@ -49,8 +49,8 @@
     var footer = document.createElement('p');
     footer.id = 'hj-footer';
     footer.textContent =
-      ‘HelloJADE by Maolys · Environnement de démonstration. ‘ +
-      ‘Sessions sécurisées — données non réelles.’;
+      'HelloJADE by Maolys · Environnement de démonstration. ' +
+      'Sessions sécurisées — données non réelles.';
 
     var wrapper =
       document.getElementById('kc-content-wrapper') ||

@@ -717,7 +717,9 @@ class AsteriskARIService:
         state = await self._get_state(channel_id)
         if not state or state.get("state") not in self._ACTIVE_RECORDING_STATES:
             return
-        logger.info(f"[ARI] Patient silence — timer {END_SILENCE_TIMEOUT}s (channel: {channel_id})")
+        cs = await call_settings_service.get()
+        _end_silence = cs.get("end_silence_timeout_seconds", END_SILENCE_TIMEOUT)
+        logger.info(f"[ARI] Patient silence — timer {_end_silence}s (channel: {channel_id})")
 
         recording_name = state.get("last_recording_name")
         if not recording_name:
@@ -726,12 +728,12 @@ class AsteriskARIService:
         current_state = state.get("state")
 
         async def _stop_after_end_silence() -> None:
-            await asyncio.sleep(END_SILENCE_TIMEOUT)
+            await asyncio.sleep(_end_silence)
             # Re-vérifier que l'appel est toujours dans un état enregistrement actif
             fresh = await self._get_state(channel_id)
             if fresh and fresh.get("state") in self._ACTIVE_RECORDING_STATES:
                 logger.debug(
-                    f"[ARI] END_SILENCE_TIMEOUT ({END_SILENCE_TIMEOUT}s) → "
+                    f"[ARI] END_SILENCE_TIMEOUT ({_end_silence}s) → "
                     f"arrêt enregistrement {recording_name}"
                 )
                 async with self._client() as c:
@@ -1264,12 +1266,14 @@ class AsteriskARIService:
                 or (len(_t_words) <= 3 and _t_lower.rstrip("?.!,;") in _META_SHORT_WORDS)
             )
             retry_count = state.get("retry_count", 0)
+            _cs = await call_settings_service.get()
+            _unclear_max_retries = int(_cs.get("unclear_max_retries", UNCLEAR_MAX_RETRIES))
 
-            if is_meta and retry_count < UNCLEAR_MAX_RETRIES:
+            if is_meta and retry_count < _unclear_max_retries:
                 # Retry : rejouer la même question
                 logger.info(
                     f"[ARI] Transcript méta-réponse (is_meta=True) — "
-                    f"relance (essai {retry_count + 1}/{UNCLEAR_MAX_RETRIES}) "
+                    f"relance (essai {retry_count + 1}/{_unclear_max_retries}) "
                     f"| transcript='{transcript[:60]}'"
                 )
                 state["retry_count"] = retry_count + 1
@@ -1284,7 +1288,7 @@ class AsteriskARIService:
             if is_meta:
                 # Option 4 : max retries atteint → skip sans appel Mistral
                 logger.info(
-                    f"[ARI] Max retry ({UNCLEAR_MAX_RETRIES}) atteint, "
+                    f"[ARI] Max retry ({_unclear_max_retries}) atteint, "
                     f"question {current_q.get('id')} ignorée"
                 )
                 answer_entry = {
@@ -1410,11 +1414,11 @@ class AsteriskARIService:
                     and not parsed.get("answer")
                     and not parsed.get("out_of_scope")
                     and _q_type not in ("open",)
-                    and retry_count < UNCLEAR_MAX_RETRIES
+                    and retry_count < _unclear_max_retries
                 ):
                     logger.info(
                         f"[ARI] Réponse vide sans contenu médical (type={_q_type}) "
-                        f"— relance (essai {retry_count + 1}/{UNCLEAR_MAX_RETRIES})"
+                        f"— relance (essai {retry_count + 1}/{_unclear_max_retries})"
                     )
                     state["retry_count"] = retry_count + 1
                     state["_needs_retry"] = True
@@ -1492,10 +1496,10 @@ class AsteriskARIService:
                     return
 
                 # Option 2 : Mistral n'a pas compris → retry si quota disponible
-                if not parsed.get("understood", True) and retry_count < UNCLEAR_MAX_RETRIES:
+                if not parsed.get("understood", True) and retry_count < _unclear_max_retries:
                     logger.info(
                         f"[ARI] Mistral: réponse non comprise "
-                        f"(essai {retry_count + 1}/{UNCLEAR_MAX_RETRIES})"
+                        f"(essai {retry_count + 1}/{_unclear_max_retries})"
                     )
                     state["retry_count"] = retry_count + 1
                     state["_needs_retry"] = True

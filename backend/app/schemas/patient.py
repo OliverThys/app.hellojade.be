@@ -155,6 +155,8 @@ class CallbackPatientItem(BaseModel):
     last_call_alert_question: Optional[str] = None
     # Dernière modification du dossier patient (ex. mise à jour de la note de rappel)
     updated_at: Optional[datetime] = None
+    # Tentatives d'appel non-joints consécutives (0=inconnu, 1=rappel auto prévu, >=2=définitif)
+    call_attempt_count: int = 0
 
 
 class CallbacksResponse(BaseModel):

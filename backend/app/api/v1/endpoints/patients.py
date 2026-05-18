@@ -184,6 +184,20 @@ async def get_callbacks(
         last_status = last_call.status if last_call else None
         alert_question = _clinical_alert_question_text(meta)
 
+        # Compte les tentatives consécutives où le patient était injoignable (calls desc)
+        attempt_count = 0
+        for c in patient.calls:
+            c_meta = c.call_metadata or {}
+            c_alert_type = c_meta.get("alert_type")
+            c_alert_reason = c_meta.get("alert_reason")
+            if (
+                c.status in FAILED_STATUSES
+                or (c_alert_type == "contact_failure" and c_alert_reason in UNREACHABLE_REASONS)
+            ):
+                attempt_count += 1
+            else:
+                break
+
         item = CallbackPatientItem(
             id=patient.id,
             nom=patient.nom,
@@ -203,6 +217,7 @@ async def get_callbacks(
             last_call_alert_reason=alert_reason,
             last_call_alert_question=alert_question,
             updated_at=patient.updated_at,
+            call_attempt_count=attempt_count,
         )
 
         if patient.manually_recalled:

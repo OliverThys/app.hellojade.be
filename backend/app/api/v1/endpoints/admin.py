@@ -145,7 +145,9 @@ class CallSettingsPayload(BaseModel):
     retry_delay_hours: int = Field(default=4, ge=1, le=48)
     amd_behavior: Literal["retry", "skip"] = "retry"
     max_call_duration_minutes: int = Field(default=10, ge=3, le=30)
-    silence_timeout_seconds: int = Field(default=1, ge=1, le=30)
+    silence_timeout_seconds: int = Field(default=2, ge=1, le=30)
+    end_silence_timeout_seconds: float = Field(default=1.3, ge=0.3, le=5.0)
+    unclear_max_retries: int = Field(default=2, ge=1, le=5)
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
